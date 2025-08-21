@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from blockchain import TransactionGroup
+from blockchain.block import TransactionGroup
+from database import db
 
 app = Flask(__name__)
 CORS(app)  # Enables cross-origin requests for frontend integration
@@ -29,6 +30,8 @@ def create_source():
         amount = int(data['amount'])
 
         group.create_source(source_code, amount)
+
+        db.save_source(source_code, amount)
 
         return jsonify({
             "message": "Source created successfully.",
@@ -60,6 +63,8 @@ def create_transaction():
 
         group.create_transaction(vendor_code, source_code, amount, leaf)
 
+        #mongoDb
+        db.save_transaction(vendor_code, source_code, amount, leaf)
         return jsonify({
             "message": "Transaction recorded successfully.",
             "from": vendor_code,
@@ -110,10 +115,13 @@ def get_chain():
             } for k, v in group.block.items()
         }
 
+        all_transactions = db.get_all_transactions()  # from MongoDB
+
         return jsonify({
             "structure": structure,
             "sources": sources,
-            "blocks": blocks
+            "blocks": blocks,
+            "transactions" : all_transactions
         }), 200
 
     except Exception as e:
